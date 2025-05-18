@@ -128,6 +128,14 @@ server <- function(input, output) {
       labs(title = "Suicides Over Time (Same Age Group)", y = "Suicides", x = "Year") +
       theme_minimal()
   })
+
+  output$genderMoodPlot <- renderPlot({
+    ggplot(joined_data, aes(x = Gender, fill = Mood_Swings)) +
+      geom_bar(position = "fill") +
+      labs(title = "Mood Swings by Gender", y = "Proportion", x = "Gender") +
+      scale_fill_brewer(palette = "Pastel1") +
+      theme_minimal()
+  })
   
   output$chinaPlot <- renderPlot({
     data <- china %>% filter(method == input$method)

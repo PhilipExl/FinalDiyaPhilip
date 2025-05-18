@@ -166,7 +166,18 @@ output$copingPie <- renderPlot({
     theme_void()
 })
 
+output$heatMapCountryYear <- renderPlot({
+    heat_data <- suicide %>%
+      group_by(country, year) %>%
+      summarise(rate = sum(suicides_no, na.rm = TRUE) / sum(population, na.rm = TRUE) * 100000, .groups = "drop")
 
+    ggplot(heat_data, aes(x = year, y = reorder(country, -rate), fill = rate)) +
+      geom_tile(color = "white") +
+      scale_fill_viridis_c(option = "C") +
+      labs(title = "Suicide Rate per 100k by Country and Year", x = "Year", y = "Country", fill = "Rate") +
+      theme_minimal()
+  })
+}
 # Run the App
 
 shinyApp(ui = ui, server = server)

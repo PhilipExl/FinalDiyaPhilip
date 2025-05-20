@@ -1,6 +1,6 @@
 # Analysis and Prediction of Mental Health Conditions and Suicide
 
-<img src="images/suicide.png" height = 500 width = 800>
+<img src="images/suicide.png" height = 300 width = 600>
 
 ## Authors
 **Diya Adhikari** & **Philip**

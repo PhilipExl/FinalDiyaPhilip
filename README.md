@@ -53,6 +53,99 @@ mh <- mh %>% mutate(AgeGroup = case_when(
 joined_data <- inner_join(mh, suicide, by = c("AgeGroup" = "age", "Gender" = "sex"))
 ```
 
+### 3. Suicide Rate Prediction Function
 
+```r
+predict_suicide_rate <- function(year_input, age_group_input) {
+  rate <- seasonal_suicide %>%
+    filter(year == year_input, AgeGroup == age_group_input) %>%
+    pull(avg_rate)
+ 
+  if (length(rate) == 0) {
+    return("No data for that year/age group")
+  } else {
+    return(paste0("Estimated Suicide Rate: ", round(rate, 1), " per 100k"))
+  }
+}
+```
+### 4. Coping Struggles Pie Chart
+
+```r
+ggplot(coping_counts, aes(x = "", y = n, fill = Coping_Struggles)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") +
+  theme_void()
+
+```
+### 5. Global Heat Map
+
+```r
+ggplot(heat_data, aes(x = year, y = reorder(country, -rate), fill = rate)) +
+  geom_tile(color = "white") +
+  scale_fill_viridis_c()
+```
+### 6.  Gender-Based Mood Swing Plot
+
+```r
+ggplot(joined_data, aes(x = Gender, fill = Mood_Swings)) +
+  geom_bar(position = "fill") +
+  theme_minimal()
+
+```
+### Prediction Model
+
+   ### Build Seasonal Table
+```r
+   seasonal_suicide <- joined_data %>%
+  group_by(year, AgeGroup) %>%
+  summarise(avg_rate = mean(suicides_no / population * 100000, na.rm = TRUE), .groups = "drop")
+```
+### Prediction Function
+```r
+predict_suicide_rate <- function(year_input, age_group_input) {
+  rate <- seasonal_suicide %>%
+    filter(year == year_input, AgeGroup == age_group_input) %>%
+    pull(avg_rate)
+
+  if (length(rate) == 0) {
+    return("No data for that year/age group")
+  } else {
+    return(paste0("Estimated Suicide Rate: ", round(rate, 1), " per 100k"))
+  }
+}
+
+```
+
+### China Case Study – Suicide Method by Gender
+```r
+china_filtered <- china %>%
+  filter(method == input$method, Sex %in% c("male", "female"))
+
+ggplot(china_filtered, aes(x = Year, fill = Sex)) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values = c("female" = "#F8766D", "male" = "#00BFC4")) +
+  labs(title = paste("China Suicide Method:", input$method), y = "Cases", fill = "Gender") +
+  theme_minimal()
+```
+
+### Future Improvements
+- Add more demographic filters (e.g., education, region)
+
+- Expand the prediction model with more variables
+
+- Include interactive drill-down capability
+
+- Improve user experience with dynamic tooltips and filtering
+
+
+### Technologies Used
+
+- shiny for layout and interactivity
+
+- ggplot2 for data visualization
+
+- dplyr and lubridate for data wrangling
+
+- plotly for optional enhancements
 
 

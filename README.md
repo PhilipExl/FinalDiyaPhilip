@@ -46,6 +46,13 @@ mh <- mh %>% mutate(AgeGroup = case_when(
   Age == "25-30" ~ "25-34 years",
   Age == "30-Above" ~ "35-54 years"
 ))
+```
+### 2. Joining Datasets
+
+```r
+joined_data <- inner_join(mh, suicide, by = c("AgeGroup" = "age", "Gender" = "sex"))
+```
+
 
 
 

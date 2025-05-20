@@ -8,6 +8,28 @@ library(DT)
 library(leaflet)
 library(plotly)
 
+# Documentation:
+# --- Scope ---
+# This Shiny app explores mental health indicators during the COVID-19 pandemic
+# and correlates them with suicide statistics from WHO data. It integrates three
+# datasets: survey-based mental health data, global suicide data, and a China-specific
+# suicide dataset. Visualizations aim to uncover trends by age, gender, geography,
+# and coping mechanisms.
+
+# --- Backlog ---
+# Future improvements include:
+# - Adding more demographic filters (e.g., education, region)
+# - Expanding prediction model features
+# - Dynamic map filtering and tooltip enhancements
+# - Enhanced interactivity with plotly or drill-down visualizations
+
+# --- Methodology ---
+# 1. Mental health survey responses are categorized into broader age groups.
+# 2. WHO suicide statistics are aggregated by age and sex and joined with survey data.
+# 3. China data is explored separately with focus on method and demographics.
+# 4. Visualizations include bar plots, boxplots, pie charts, and heatmaps.
+# 5. A linear model predicts suicide rate per 100k using economic indicators (GDP, HDI).
+
 
 setwd("~/Documents/finalproject")  
 

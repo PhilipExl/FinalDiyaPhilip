@@ -1,46 +1,16 @@
 # Load packages
-library(tidyverse)  
-library(readr)      
 library(shiny)
-library(ggplot2)
+library(tidyverse)
 library(lubridate)
 library(DT)
-library(leaflet)
 library(plotly)
 
-# Documentation:
-# --- Scope ---
-# This Shiny app explores mental health indicators during the COVID-19 pandemic
-# and correlates them with suicide statistics from WHO data. It integrates three
-# datasets: survey-based mental health data, global suicide data, and a China-specific
-# suicide dataset. Visualizations aim to uncover trends by age, gender, geography,
-# and coping mechanisms.
-
-# --- Backlog ---
-# Future improvements include:
-# - Adding more demographic filters (e.g., education, region)
-# - Expanding prediction model features
-# - Dynamic map filtering and tooltip enhancements
-# - Enhanced interactivity with plotly or drill-down visualizations
-
-# --- Methodology ---
-# 1. Mental health survey responses are categorized into broader age groups.
-# 2. WHO suicide statistics are aggregated by age and sex and joined with survey data.
-# 3. China data is explored separately with focus on method and demographics.
-# 4. Visualizations include bar plots, boxplots, pie charts, and heatmaps.
-# 5. A linear model predicts suicide rate per 100k using economic indicators (GDP, HDI).
-
-
-setwd("~/Documents/finalproject")  
-
+# Load Data
 mh <- read.csv("mental_health_finaldata_1 (1).csv")
-suicide <- read.csv("master.csv")
+suicide <- read.csv("master.csv") 
 china <- read.csv("SuicideChina.csv")
 
-
-# JOIN Mental Health + Suicide Data
-
-# Step 1: Normalize age columns in mh
+# --- Data Preprocessing ---
 mh <- mh %>% mutate(AgeGroup = case_when(
   Age == "16-20" ~ "15-24 years",
   Age == "20-25" ~ "15-24 years",
@@ -48,60 +18,98 @@ mh <- mh %>% mutate(AgeGroup = case_when(
   Age == "30-Above" ~ "35-54 years"
 ))
 
-# Step 2: Summarize suicide data by age and sex (pivot table)
-suicide_summary <- suicide %>%
+suicide <- suicide %>%
   filter(country == "United States") %>%
-  mutate(age = as.character(age),
-         sex = tolower(sex)) %>%
-  group_by(age, sex) %>%
-  summarise(
-    avg_suicides = mean(suicides_no, na.rm = TRUE),
-    total_suicides = sum(suicides_no, na.rm = TRUE),
-    avg_suicides_per_100k = mean(`suicides/100k pop`, na.rm = TRUE),
-    avg_gdp = mean(as.numeric(gsub(",", "", ` gdp_for_year ($) `)), na.rm = TRUE),
-    avg_hdi = mean(`HDI for year`, na.rm = TRUE),
-    .groups = "drop"
-  )
+  mutate(age = as.character(age), sex = tolower(sex))
 
-# Step 3: Lowercase mh Gender to match suicide_summary sex
 mh$Gender <- tolower(mh$Gender)
 
-# Step 4: Join mental health data to aggregated suicide data
-joined_data <- inner_join(mh, suicide_summary, by = c("AgeGroup" = "age", "Gender" = "sex"))
+joined_data <- inner_join(mh, suicide, by = c("AgeGroup" = "age", "Gender" = "sex"))
 
-# Clean Joined Data
 joined_data$AgeGroup <- factor(joined_data$AgeGroup,
-                               levels = c("15-24 years", "25-34 years", "35-54 years"), ordered = TRUE)
+                               levels = c("15-24 years", "25-34 years", "35-54 years"),
+                               ordered = TRUE)
 
-cols_to_factor <- c('Occupation', 'Growing_Stress', 'Quarantine_Frustrations', 
-                    'Changes_Habits', 'Mental_Health_History', 'Weight_Change', 'Mood_Swings', 
+cols_to_factor <- c('Occupation', 'Growing_Stress', 'Quarantine_Frustrations',
+                    'Changes_Habits', 'Mental_Health_History', 'Weight_Change', 'Mood_Swings',
                     'Coping_Struggles', 'Work_Interest', 'Social_Weakness')
-
-# Only apply factor conversion to columns that actually exist in joined_data
-cols_to_factor <- cols_to_factor[cols_to_factor %in% colnames(joined_data)]
 joined_data[cols_to_factor] <- lapply(joined_data[cols_to_factor], as.factor)
 
+# Seasonal average table for prediction
+seasonal_suicide <- joined_data %>%
+  group_by(year, AgeGroup) %>%
+  summarise(avg_rate = mean(suicides_no / population * 100000, na.rm = TRUE), .groups = "drop")
 
+predict_suicide_rate <- function(year_input, age_group_input) {
+  rate <- seasonal_suicide %>%
+    filter(year == year_input, AgeGroup == age_group_input) %>%
+    pull(avg_rate)
+  
+  if (length(rate) == 0) {
+    return("No data for that year/age group")
+  } else {
+    return(paste0("Estimated Suicide Rate: ", round(rate, 1), " per 100k"))
+  }
+}
 
 # UI
-
-ui <- navbarPage("Mental Health & Suicide Trends", 
+ui <- navbarPage("Mental Health & Suicide Trends",
                  
                  tabPanel("Home",
                           titlePanel("Final Project: Understanding Mental Health & Suicide"),
-                          p("This project merges survey data on quarantine-related mental health struggles with global suicide 
-       statistics from the WHO to explore patterns in stress, mood, and mental health history. We also present
-       a case study from China with method-based suicide breakdown.")
-                 ),
+                          
+                          h3("Project Documentation"),
+                          
+                          h4("Scope"),
+                          p("This Shiny app explores mental health indicators during the COVID-19 pandemic and correlates them with suicide statistics from WHO data."),
+                          p("It integrates three datasets: survey-based mental health data, global suicide data, and China-specific data. Visualizations aim to uncover trends by age, gender, geography, and coping mechanisms."),
+                          
+                          h4("Methodology"),
+                          tags$ol(
+                            tags$li("Mental health survey responses categorized into age groups."),
+                            tags$li("Suicide statistics aggregated by age and gender."),
+                            tags$li("Coping strategies, trends, and predictive modeling analyzed."),
+                            tags$li("Seasonal suicide rate prediction implemented."),
+                            tags$li("Case study visualized by method and gender.")
+                          ),
+                          
+                          h4("Features"),
+                          tags$ul(
+                            tags$li("Mood swings by gender (bar plot)"),
+                            tags$li("Coping struggles (pie chart)"),
+                            tags$li("Suicide heat map (tile chart)"),
+                            tags$li("Rate predictions by age/year (custom model)"),
+                            tags$li("China case by suicide method (bar)")
+                          ),
+                          
+                          h4("Backlog of Ideas"),
+                          tags$ul(
+                            tags$li("Adding more demographic filters (e.g., education, region)"),
+                            tags$li("Expanding prediction model features"),
+                            tags$li("Dynamic map filtering and tooltip enhancements"),
+                            tags$li("Enhanced interactivity with plotly or drill-down visualizations")
+                          ) 
+                 ), 
                  
-                 tabPanel("Survey & Suicide Trends",
-                          sidebarLayout(
-                            sidebarPanel(
-                              selectInput("agegrp", "Select Age Group:", choices = levels(joined_data$AgeGroup))
+                 
+                 
+                 tabPanel("Gender & Mood Swings", mainPanel(plotOutput("genderMoodPlot"))),
+                 
+                 tabPanel("Coping Strategies", mainPanel(plotOutput("copingPie"))),
+                 
+                 tabPanel("Suicide Rate Heat Map", mainPanel(plotOutput("heatMapCountryYear"))),
+                 
+                 tabPanel("Suicide Rate Boxplot", mainPanel(plotOutput("boxPlotSuicideRate"))),
+                 
+                 tabPanel("Prediction",
+                          fluidRow(
+                            column(4,
+                                   selectInput("pred_agegrp", "Age Group:", choices = unique(joined_data$AgeGroup)),
+                                   sliderInput("pred_year", "Year:", min = min(joined_data$year), max = max(joined_data$year), value = 2014)
                             ),
-                            mainPanel(
-                              plotOutput("stressPlot"),
-                              plotOutput("suicideRatePlot")
+                            column(8,
+                                   tags$h4("Predicted Suicide Rate"),
+                                   verbatimTextOutput("suicide_prediction")
                             )
                           )
                  ),
@@ -118,21 +126,7 @@ ui <- navbarPage("Mental Health & Suicide Trends",
                  )
 )
 
-tabPanel("Suicide Rate Boxplot",
-         mainPanel(
-           plotOutput("boxPlotSuicideRate")
-         )
-)
-
-tabPanel("Coping Strategies",
-         mainPanel(
-           plotOutput("copingPie")
-         )
-)
-
-
 # Server
-
 server <- function(input, output) {
   
   output$stressPlot <- renderPlot({
@@ -147,80 +141,68 @@ server <- function(input, output) {
     data <- joined_data %>% filter(AgeGroup == input$agegrp)
     ggplot(data, aes(x = year, y = suicides_no, color = generation)) +
       geom_line(stat = "summary", fun = sum) +
-      labs(title = "Suicides Over Time (Same Age Group)", y = "Suicides", x = "Year") +
+      labs(title = "Suicides Over Time", y = "Suicides", x = "Year") +
       theme_minimal()
   })
-
+  
   output$genderMoodPlot <- renderPlot({
     ggplot(joined_data, aes(x = Gender, fill = Mood_Swings)) +
       geom_bar(position = "fill") +
       labs(title = "Mood Swings by Gender", y = "Proportion", x = "Gender") +
-      scale_fill_brewer(palette = "Pastel1") +
       theme_minimal()
   })
   
-  output$chinaPlot <- renderPlot({
-    data <- china %>% filter(method == input$method)
-    ggplot(data, aes(x = Year, fill = Sex)) +
-      geom_bar(position = "dodge") +
-      labs(title = paste("China Suicide Method Trends:", input$method),
-           x = "Year", y = "Cases") +
-      theme_minimal()
-  }) 
+  output$copingPie <- renderPlot({
+    coping_counts <- joined_data %>%
+      count(Coping_Struggles) %>%
+      mutate(percent = round(100 * n / sum(n), 1),
+             label = paste0(Coping_Struggles, ": ", percent, "%"))
+    
+    ggplot(coping_counts, aes(x = "", y = n, fill = Coping_Struggles)) +
+      geom_bar(stat = "identity", width = 1, color = "white") +
+      coord_polar("y") +
+      geom_text(aes(label = label), position = position_stack(vjust = 0.5), color = "white") +
+      scale_fill_manual(values = c("Yes" = "#00BFC4", "No" = "#F8766D")) +
+      labs(title = "Coping Struggles Distribution") +
+      theme_void()
+  })
   
-}
-
-output$boxPlotSuicideRate <- renderPlot({
-  ggplot(joined_data, aes(x = AgeGroup, y = avg_suicides_per_100k, fill = AgeGroup)) +
-    geom_boxplot() +
-    labs(title = "Suicide Rate per 100k by Age Group", x = "Age Group", y = "Avg Suicides per 100k") +
-    theme_minimal()
-})
-
-output$copingPie <- renderPlot({
-  coping_counts <- joined_data %>%
-    count(Coping_Struggles)
-  
-  ggplot(coping_counts, aes(x = "", y = n, fill = Coping_Struggles)) +
-    geom_bar(width = 1, stat = "identity") +
-    coord_polar(theta = "y") +
-    labs(title = "Coping Struggles Distribution") +
-    theme_void()
-})
-
-output$heatMapCountryYear <- renderPlot({
+  output$heatMapCountryYear <- renderPlot({
     heat_data <- suicide %>%
       group_by(country, year) %>%
       summarise(rate = sum(suicides_no, na.rm = TRUE) / sum(population, na.rm = TRUE) * 100000, .groups = "drop")
-
+    
     ggplot(heat_data, aes(x = year, y = reorder(country, -rate), fill = rate)) +
       geom_tile(color = "white") +
       scale_fill_viridis_c(option = "C") +
       labs(title = "Suicide Rate per 100k by Country and Year", x = "Year", y = "Country", fill = "Rate") +
       theme_minimal()
   })
-}
-
-output$modelSummary <- renderPrint({
-    model <- lm(avg_suicides_per_100k ~ avg_gdp + avg_hdi, data = joined_data)
-    summary(model)
+  
+  output$boxPlotSuicideRate <- renderPlot({
+    ggplot(joined_data, aes(x = AgeGroup, y = suicides_no / population * 100000, fill = AgeGroup)) +
+      geom_boxplot() +
+      labs(title = "Suicide Rate per 100k by Age Group", x = "Age Group", y = "Rate") +
+      theme_minimal()
   })
-
-  output$predictionPlot <- renderPlot({
-    model <- lm(avg_suicides_per_100k ~ avg_gdp + avg_hdi, data = joined_data)
-    joined_data$predicted <- predict(model, joined_data)
-
-    ggplot(joined_data, aes(x = avg_suicides_per_100k, y = predicted)) +
-      geom_point(color = "tomato", alpha = 0.6) +
-      geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "steelblue") +
-      labs(title = "Predicted vs Actual Suicide Rates",
-           x = "Actual Suicide Rate per 100k",
-           y = "Predicted Suicide Rate") +
+  
+  output$suicide_prediction <- renderText({
+    req(input$pred_year, input$pred_agegrp)
+    predict_suicide_rate(input$pred_year, input$pred_agegrp)
+  })
+  
+  output$chinaPlot <- renderPlot({
+    china_filtered <- china %>%
+      filter(method == input$method) %>%
+      filter(Sex %in% c("male", "female"))
+    
+    ggplot(china_filtered, aes(x = Year, fill = Sex)) +
+      geom_bar(position = "dodge") +
+      scale_fill_manual(values = c("female" = "#F8766D", "male" = "#00BFC4")) +
+      labs(title = paste("China Suicide Method:", input$method), y = "Cases", fill = "Gender") +
       theme_minimal()
   })
 }
 
 # Run the App
-
 shinyApp(ui = ui, server = server)
-

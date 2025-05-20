@@ -1,43 +1,45 @@
 # Analysis and Prediction of Mental Health Conditions and Suicide
 
-## Authors: Diya, Philip    
 
-# Overview
-
-This project presents an interactive **Shiny dashboard** analyzing how mental health challenges during the COVID-19 pandemic may relate to suicide trends across age groups and countries. The app merges mental health survey data with WHO suicide statistics and includes a case study from China. Built in R, the dashboard includes bar charts, pie charts, heatmaps, a seasonal prediction model, and gender-based method analysis. shiny link: https://diya11.shinyapps.io/finalproject/
+## Authors
+**Diya Adhikari** & **Philip**
 
 ---
 
-## Data Source
-
-The dataset includes three separate CSV files:
-
-- `mental_health_finaldata_1 (1).csv`
-- `master.csv`
-- `SuicideChina.csv`
-
-Each file contains:
-- Age, gender, and stress-related survey responses
-- WHO suicide data by country, year, sex, and age
-- Method-specific suicide data from China by year and gender
-
-These datasets were cleaned and merged using R before being visualized in the Shiny app.
+##  Shiny App Link
+[Click here to view the app](https://diya11.shinyapps.io/finalproject/)
 
 ---
 
-## Data Preparation
+## Overview
 
-Before building the dashboard, the following steps were taken:
+This project presents an interactive **Shiny dashboard** that analyzes how mental health indicators during the COVID-19 pandemic relate to global and country-specific suicide statistics. By integrating multiple datasets, the app visualizes patterns based on age, gender, and coping behaviors and offers a predictive model for suicide rates.
 
-### Load and Clean Data
+---
+
+## Data Sources
+
+- `mental_health_finaldata_1 (1).csv` – Mental health survey data (COVID-19 era)
+- `master.csv` – WHO global suicide statistics
+- `SuicideChina.csv` – Gender and method-specific suicide data from China
+
+---
+
+##  Key Features
+
+- Mood swings by gender (bar plot)
+- Coping strategies visualization (pie chart)
+- Heat map of global suicide rates
+- Suicide rate prediction by age group and year
+- China case study by suicide method and gender
+
+---
+
+##  Code Snippets
+
+### 1. Data Preprocessing
 
 ```r
-mh <- read.csv("mental_health_finaldata_1 (1).csv")
-suicide <- read.csv("master.csv")
-china <- read.csv("SuicideChina.csv")
-'''
-
-## Normalize Age Groups and Join Datasets
 mh <- mh %>% mutate(AgeGroup = case_when(
   Age == "16-20" ~ "15-24 years",
   Age == "20-25" ~ "15-24 years",
@@ -45,12 +47,5 @@ mh <- mh %>% mutate(AgeGroup = case_when(
   Age == "30-Above" ~ "35-54 years"
 ))
 
-suicide <- suicide %>%
-  filter(country == "United States") %>%
-  mutate(age = as.character(age), sex = tolower(sex))
-
-mh$Gender <- tolower(mh$Gender)
-
-joined_data <- inner_join(mh, suicide, by = c("AgeGroup" = "age", "Gender" = "sex"))
 
 

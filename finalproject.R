@@ -178,6 +178,26 @@ output$heatMapCountryYear <- renderPlot({
       theme_minimal()
   })
 }
+
+output$modelSummary <- renderPrint({
+    model <- lm(avg_suicides_per_100k ~ avg_gdp + avg_hdi, data = joined_data)
+    summary(model)
+  })
+
+  output$predictionPlot <- renderPlot({
+    model <- lm(avg_suicides_per_100k ~ avg_gdp + avg_hdi, data = joined_data)
+    joined_data$predicted <- predict(model, joined_data)
+
+    ggplot(joined_data, aes(x = avg_suicides_per_100k, y = predicted)) +
+      geom_point(color = "tomato", alpha = 0.6) +
+      geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "steelblue") +
+      labs(title = "Predicted vs Actual Suicide Rates",
+           x = "Actual Suicide Rate per 100k",
+           y = "Predicted Suicide Rate") +
+      theme_minimal()
+  })
+}
+
 # Run the App
 
 shinyApp(ui = ui, server = server)

@@ -5,3 +5,4 @@
 # Overview
 This project overviews mental health conditions and suicides in different genders
 
+shiny link: https://diya11.shinyapps.io/finalproject/

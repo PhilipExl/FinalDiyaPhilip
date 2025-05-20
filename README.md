@@ -1,5 +1,5 @@
 # Analysis and Prediction of Mental Health Conditions and Suicide
-![delay_pic]
+https://github.com/PhilipExl/FinalDiyaPhilip/blob/main/images/suicide.png
 
 ## Authors
 **Diya Adhikari** & **Philip**
